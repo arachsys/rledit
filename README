@@ -1,0 +1,46 @@
+rledit
+======
+
+rledit is a command-line wrapper for GNU Readline to allow it to be used
+as a simple multi-line text editor.
+
+Edit a file with 'rledit FILE', or use 'rledit' without arguments within
+a pipe to intercept and edit text in the style of 'vipe'. In particular,
+you can set EDITOR to 'rledit' to use it as a super-lightweight editor
+where only a few words of input are likely.
+
+Pressing RET will confirm your input, equivalent to saving and exiting in
+a regular text editor. To insert a newline instead, use S-RET, C-RET, M-RET
+or C-j. Not all of these bindings will be supported in every terminal.
+
+
+BSD libedit/editline
+--------------------
+
+Although libedit has a readline compatibility interface, it is not complete
+enough to build rledit. Libedit also misbehaves with buffers containing
+embedded newlines. You can test this by inserting literal newlines with
+C-v C-j at a prompt, comparing programs linked against readline vs libedit.
+
+
+Building and installing
+-----------------------
+
+Run 'make install' at the top of the source tree to install rledit in /bin.
+Alternatively, you can set DESTDIR and/or BINDIR to install in a different
+location, or make, strip and copy the binary into place manually.
+
+The program should be portable to any reasonably modern POSIX system with
+the readline library available, including Linux and BSD, but it will not
+work with libedit's readline compatibility interface.
+
+Please report any problems or bugs to Chris Webb <chris@arachsys.com>.
+
+
+Copying
+-------
+
+This software was written by Chris Webb <chris@arachsys.com> and is
+distributed as Free Software under the terms of the MIT license in COPYING.
+However, GNU Readline is distributed under version 3 of the GNU GPL,
+so binaries linked against it must also be distributed under those terms.
