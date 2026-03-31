@@ -44,14 +44,16 @@ int main(int argc, char **argv) {
   int in, out, tty;
 
   switch (argc) {
-    case 1:
-      if ((in = dup(0)) < 0 || (out = dup(1)) < 0)
-        err(1, "dup");
-      break;
     case 2:
       if ((in = out = open(argv[1], O_RDWR | O_CREAT, 0666)) < 0)
         err(1, argv[1]);
       break;
+    case 1:
+      if (!isatty(0) || !isatty(1)) {
+        if ((in = dup(0)) < 0 || (out = dup(1)) < 0)
+          err(1, "dup");
+        break;
+      }
     default:
       fprintf(stderr, "Usage: %s [FILE]\n", argv[0]);
       return 64;
