@@ -7,6 +7,7 @@
 
 #include <readline/readline.h>
 
+static int chain = 0;
 static char *text;
 
 static int prefill(void) {
@@ -33,6 +34,12 @@ static char *slurp(int fd) {
   return buffer;
 }
 
+static int visual(int count, int key) {
+  rl_clear_visible_line();
+  chain = rl_done = 1;
+  return 0;
+}
+
 int main(int argc, char **argv) {
   int in, out, tty;
 
@@ -54,6 +61,10 @@ int main(int argc, char **argv) {
     err(1, "/dev/tty");
   if (dup2(tty, 0) < 0 || dup2(tty, 1) < 0)
     err(1, "dup2");
+  close(tty);
+
+  if (argc > 1)
+    rl_bind_keyseq_in_map("\\C-x\\C-e", visual, emacs_standard_keymap);
 
   rl_macro_bind("\\C-j", "\\C-v\\C-j", emacs_standard_keymap);
   rl_macro_bind("\\e\\C-m", "\\C-v\\C-j", emacs_standard_keymap);
@@ -63,16 +74,25 @@ int main(int argc, char **argv) {
   rl_startup_hook = prefill;
 
   text = slurp(in);
+  if (in != out)
+    close(in);
+
   dprintf(1, "\033[3m"); /* italic style */
   text = readline("");
   dprintf(1, "\033[0m"); /* default style */
 
-  if (argc == 2) {
+  if (argc > 1) {
     lseek(out, 0, SEEK_SET);
     ftruncate(out, 0);
   }
 
   if (text && *text && dprintf(out, "%s\n", text) < 0)
     err(1, argv[1]);
+  close(out);
+
+  if (chain && argc > 1)
+    if (execlp("sh", "sh", "-c", "${VISUAL:-${EDITOR:-vi}} \"$1\"",
+        argv[0], argv[1], NULL) < 0)
+      err(1, "execlp");
   return 0;
 }
