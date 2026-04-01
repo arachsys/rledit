@@ -13,6 +13,10 @@ Pressing RET will confirm your input, equivalent to saving and exiting in
 a regular text editor. To insert a newline instead, use S-RET, C-RET, M-RET
 or C-j. Not all of these bindings will be supported in every terminal.
 
+If you decide you would prefer to continue editing your text in a more
+full-featured editor, use C-x C-e, as in bash. rledit will try to switch
+to $VISUAL, $EDITOR, or vi, in order of preference.
+
 
 BSD libedit/editline
 --------------------
