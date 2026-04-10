@@ -79,9 +79,9 @@ int main(int argc, char **argv) {
   if (in != out)
     close(in);
 
-  dprintf(1, "\033[3m"); /* italic style */
+  dprintf(1, "\033[3m\033[1 q"); /* italic style, blinking cursor */
   text = readline("");
-  dprintf(1, "\033[0m"); /* default style */
+  dprintf(1, "\033[0m\033[0 q"); /* default style, default cursor */
 
   if (argc > 1) {
     lseek(out, 0, SEEK_SET);
