@@ -7,7 +7,7 @@
 
 #include <readline/readline.h>
 
-static int chain = 0;
+static int external;
 static char *text;
 
 static int prefill(void) {
@@ -36,37 +36,12 @@ static char *slurp(int fd) {
 
 static int visual(int count, int key) {
   rl_clear_visible_line();
-  chain = rl_done = 1;
+  external = rl_done = 1;
   return 0;
 }
 
 int main(int argc, char **argv) {
-  int in, out, tty;
-
-  switch (argc) {
-    case 2:
-      if ((in = out = open(argv[1], O_RDWR | O_CREAT, 0666)) < 0)
-        err(1, argv[1]);
-      break;
-    case 1:
-      if (!isatty(0) || !isatty(1)) {
-        if ((in = dup(0)) < 0 || (out = dup(1)) < 0)
-          err(1, "dup");
-        break;
-      }
-    default:
-      fprintf(stderr, "Usage: %s [FILE]\n", argv[0]);
-      return 64;
-  }
-
-  if ((tty = open("/dev/tty", O_RDWR)) < 0)
-    err(1, "/dev/tty");
-  if (dup2(tty, 0) < 0 || dup2(tty, 1) < 0)
-    err(1, "dup2");
-  close(tty);
-
-  if (argc > 1)
-    rl_bind_keyseq_in_map("\\C-x\\C-e", visual, emacs_standard_keymap);
+  int fd, tty;
 
   rl_macro_bind("\\C-j", "\\C-v\\C-j", emacs_standard_keymap);
   rl_macro_bind("\\e\\C-m", "\\C-v\\C-j", emacs_standard_keymap);
@@ -75,26 +50,61 @@ int main(int argc, char **argv) {
   rl_inhibit_completion = 1;
   rl_startup_hook = prefill;
 
-  text = slurp(in);
-  if (in != out)
-    close(in);
+  if (argc == 2 && isatty(0) && isatty(1)) {
+    rl_bind_keyseq_in_map("\\C-x\\C-e", visual, emacs_standard_keymap);
 
-  dprintf(1, "\033[3m\033[1 q"); /* italic style, blinking cursor */
-  text = readline("");
-  dprintf(1, "\033[0m\033[0 q"); /* default style, default cursor */
+    if (setenv("FILE", argv[1], 1))
+      err(1, "setenv");
 
-  if (argc > 1) {
-    lseek(out, 0, SEEK_SET);
-    ftruncate(out, 0);
+    while (1) {
+      if ((fd = open(argv[1], O_RDWR | O_CREAT, 0666)) < 0)
+        err(1, argv[1]);
+      text = slurp(fd);
+      external = 0;
+
+      dprintf(1, "\033[3m\033[1 q"); /* italic style, blinking cursor */
+      text = readline("");
+      dprintf(1, "\033[0m\033[0 q"); /* default style, default cursor */
+
+      lseek(fd, 0, SEEK_SET);
+      ftruncate(fd, 0);
+      if (text && *text && dprintf(fd, "%s\n", text) < 0)
+        err(1, argv[1]);
+      close(fd);
+
+      if (external == 0)
+        return 0;
+      if (system("${VISUAL:-${EDITOR:-vi}} \"$FILE\""))
+        return 1;
+    }
   }
 
-  if (text && *text && dprintf(out, "%s\n", text) < 0)
-    err(1, argv[1]);
-  close(out);
+  if (argc == 1 && (!isatty(0) || !isatty(1))) {
+    if (fcntl(0, F_GETFD) < 0)
+      errx(1, "/dev/stdin is not open");
+    if (fcntl(1, F_GETFD) < 0)
+      errx(1, "/dev/stdout is not open");
 
-  if (chain && argc > 1)
-    if (execlp("sh", "sh", "-c", "${VISUAL:-${EDITOR:-vi}} \"$1\"",
-        argv[0], argv[1], NULL) < 0)
-      err(1, "execlp");
-  return 0;
+    if ((fd = dup(1)) < 0)
+      err(1, "dup");
+    text = slurp(0);
+
+    if ((tty = open("/dev/tty", O_RDWR)) < 0)
+      err(1, "/dev/tty");
+    if (dup2(tty, 0) < 0 || dup2(tty, 1) < 0)
+      err(1, "dup2");
+    close(tty);
+
+    dprintf(1, "\033[3m\033[1 q"); /* italic style, blinking cursor */
+    text = readline("");
+    dprintf(1, "\033[0m\033[0 q"); /* default style, default cursor */
+
+    if (text && *text && dprintf(fd, "%s\n", text) < 0)
+      err(1, argv[1]);
+    close(fd);
+    return 0;
+  }
+
+  fprintf(stderr, "Usage: %s [FILE]\n", argv[0]);
+  return 64;
 }
