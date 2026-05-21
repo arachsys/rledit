@@ -1,6 +1,7 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -42,6 +43,8 @@ static int visual(int count, int key) {
 
 int main(int argc, char **argv) {
   int fd, tty;
+
+  setlocale(LC_CTYPE, "");
 
   rl_macro_bind("\\C-j", "\\C-v\\C-j", emacs_standard_keymap);
   rl_macro_bind("\\e\\C-m", "\\C-v\\C-j", emacs_standard_keymap);
