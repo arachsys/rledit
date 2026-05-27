@@ -16,6 +16,17 @@ static int prefill(void) {
   return 0;
 }
 
+static void prepare(int meta) {
+  rl_prep_terminal(meta);
+  dprintf(1, "\033[3m\033[1 q"); /* italic style, blinking cursor */
+  rl_forced_update_display();
+}
+
+static void release(void) {
+  dprintf(1, "\033[0m\033[0 q"); /* default style, default cursor */
+  rl_deprep_terminal();
+}
+
 static char *slurp(int fd) {
   ssize_t count, length = 0, size = 0;
   char *buffer = NULL;
@@ -50,8 +61,11 @@ int main(int argc, char **argv) {
   rl_macro_bind("\\e\\C-m", "\\C-v\\C-j", emacs_standard_keymap);
   rl_macro_bind("\\e[27;2;13~", "\\C-v\\C-j", emacs_standard_keymap);
   rl_macro_bind("\\e[27;5;13~", "\\C-v\\C-j", emacs_standard_keymap);
-  rl_inhibit_completion = 1;
+
+  rl_prep_term_function = prepare;
+  rl_deprep_term_function = release;
   rl_startup_hook = prefill;
+  rl_inhibit_completion = 1;
 
   if (argc == 2 && isatty(0) && isatty(1)) {
     rl_bind_keyseq_in_map("\\C-x\\C-e", visual, emacs_standard_keymap);
@@ -65,9 +79,7 @@ int main(int argc, char **argv) {
       text = slurp(fd);
       external = 0;
 
-      dprintf(1, "\033[3m\033[1 q"); /* italic style, blinking cursor */
       text = readline("");
-      dprintf(1, "\033[0m\033[0 q"); /* default style, default cursor */
 
       lseek(fd, 0, SEEK_SET);
       ftruncate(fd, 0);
@@ -98,9 +110,7 @@ int main(int argc, char **argv) {
       err(1, "dup2");
     close(tty);
 
-    dprintf(1, "\033[3m\033[1 q"); /* italic style, blinking cursor */
     text = readline("");
-    dprintf(1, "\033[0m\033[0 q"); /* default style, default cursor */
 
     if (text && *text && dprintf(fd, "%s\n", text) < 0)
       err(1, argv[1]);
