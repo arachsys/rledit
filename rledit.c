@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
 
     while (1) {
       if ((fd = open(argv[1], O_RDWR | O_CREAT, 0666)) < 0)
-        err(1, argv[1]);
+        err(1, "%s", argv[1]);
       text = slurp(fd);
       external = 0;
 
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
       lseek(fd, 0, SEEK_SET);
       ftruncate(fd, 0);
       if (text && *text && dprintf(fd, "%s\n", text) < 0)
-        err(1, argv[1]);
+        err(1, "%s", argv[1]);
       close(fd);
 
       if (external == 0)
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
     text = readline("");
 
     if (text && *text && dprintf(fd, "%s\n", text) < 0)
-      err(1, argv[1]);
+      err(1, "%s", argv[1]);
     close(fd);
     return 0;
   }
