@@ -81,8 +81,8 @@ int main(int argc, char **argv) {
 
       text = readline("");
 
-      lseek(fd, 0, SEEK_SET);
-      ftruncate(fd, 0);
+      if (lseek(fd, 0, SEEK_SET) < 0 || ftruncate(fd, 0) < 0)
+        err(1, "%s", argv[1]);
       if (text && *text && dprintf(fd, "%s\n", text) < 0)
         err(1, "%s", argv[1]);
       close(fd);
